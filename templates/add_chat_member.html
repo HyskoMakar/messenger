@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>KitsuneGram: Add member</title>
+</head>
+<body class="type-2">
+    <div class="fly-glass-container">
+        <div>
+            <h3>All users</h3>
+            <ul style=" display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        justify-content: flex-start;
+                        overflow: scroll;
+                        max-height: 200px;">
+                {% for user in users %}
+                    {% if user[0] in member_ids %}
+                        <li style="opacity: 0.6;">{{ user[1] }} (member)</li>
+                    {% else %}
+                        <li><a href="#" class="pick-user" data-username="{{ user[1] }}">{{ user[1] }}</a></li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        <div style="flex: 1 1 auto;">
+            <a class="cancel-btn" href="{{ url_for('home') }}">Go back</a>
+            <h2>Add member to chat</h2>
+            {% if error %}
+                <p style="color:red;">{{ error }}</p>
+            {% endif %}
+            <form method="post" action="{{ url_for('add_chat_member') }}">
+                <div>
+                    <input type="text" placeholder="Your friends name.." id="name" name="name" required><br>
+                </div>
+    
+                <button type="submit">Add member to chat</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.pick-user').forEach(a => {
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                const nameInput = document.getElementById('name');
+                nameInput.value = a.dataset.username;
+                nameInput.focus();
+            });
+        });
+    </script>
+</body>
+</html>

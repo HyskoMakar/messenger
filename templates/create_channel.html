@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>KitsuneGram: Create channel</title>
+</head>
+<body class="type-2">
+    <div class="fly-glass-container">
+        <a class="cancel-btn" href="{{ url_for('home') }}">Go back</a>
+        <h2>Create channel</h2>
+        {% if error %}
+            <p style="color:red;">{{ error }}</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('create_channel') }}">
+            <div>
+                <input type="text" placeholder="Name" id="name" name="name" required><br>
+            </div>
+
+            <button type="submit">Create channel</button>
+        </form>
+    </div>
+</body>
+</html>

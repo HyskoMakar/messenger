@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>KitsuneGram: Home</title>
+</head>
+<body>
+    <div class="left-glass-container">
+        <ul class="another" id="nav-list">
+            {% if tab_info['tab'] == "users" %}
+                {% set online_set = online_ids|default([]) %}
+                {% for user in tab_info['all'] %}
+                    {% if user[0] != self_id %}
+                        {% set is_online = user[0] in online_set %}
+                        {% if user[1] == tab_info['viewing'] %}
+                            <li class="active" data-type="user" data-id="{{ user[0] }}">
+                        {% else %}
+                            <li data-type="user" data-id="{{ user[0] }}">
+                        {% endif %}
+                                <a href="{{ url_for('home_user', user_id=user[0]) }}">{{ user[1] }}</a>
+                                <span class="status-badge {{ 'online' if is_online else 'offline' }}">{{ 'Online' if is_online else 'Offline' }}</span>
+                                <span class="status-badge typing typing-badge" hidden>Typing</span>
+                            </li>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% if tab_info['tab'] == "chats" %}
+                {% for chat in tab_info['all'] %}
+                    {% set is_my = owned_chat_ids and chat[0] in owned_chat_ids %}
+                    {% set online_count = chat[2] if chat|length > 2 else 0 %}
+                    {% if chat[0] == tab_info['viewing'] %}
+                        <li class="active{% if is_my %} my{% endif %} chat" data-type="chat" data-id="{{ chat[0] }}">
+                    {% else %}
+                        <li class="{% if is_my %}my{% endif %} chat" data-type="chat" data-id="{{ chat[0] }}">
+                    {% endif %}
+                            <a href="{{ url_for('home_chat', chat_id=chat[0]) }}">{{ chat[1] }}</a>
+                            <span class="chat-status-badge status-badge {{ 'online' if online_count > 0 else 'offline' }}">
+                                {% if online_count > 0 %}
+                                    {{ online_count }} Online 
+                                {% else %}
+                                    Offline
+                                {% endif %}
+                            </span>
+                            {% if is_my %}
+                                <div class="chat-admin-buttons">
+                                    <button class="edit-chat-btn" data-chat-id="{{ chat[0] }}" data-chat-name="{{ chat[1] }}" title="Edit chat name">
+                                        <i class="fa-solid fa-edit"></i>
+                                    </button>
+                                    <button class="add-member-chat-btn" data-chat-id="{{ chat[0] }}" data-chat-name="{{ chat[1] }}" title="Add member">
+                                        <i class="fa-solid fa-user-plus"></i>
+                                    </button>
+                                    <button class="delete-chat-btn" data-chat-id="{{ chat[0] }}" data-chat-name="{{ chat[1] }}" title="Delete chat">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </li>
+                {% endfor %}
+            {% endif %}
+            {% if tab_info['tab'] == "channels" %}
+                {% for channel in tab_info['all'] %}
+                    {% set is_my = owned_channel_ids and channel[0] in owned_channel_ids %}
+                    {% if channel[0] == tab_info['viewing'] %}
+                        <li class="active{% if is_my %} my{% endif %} chat" data-type="channel" data-id="{{ channel[0] }}">
+                    {% else %}
+                        <li class="{% if is_my %}my{% endif %} chat" data-type="channel" data-id="{{ channel[0] }}">
+                    {% endif %}
+                            <a href="{{ url_for('home_channel', channel_id=channel[0]) }}">{{ channel[1] }}</a>
+                            {% if is_my %}
+                                <div class="chat-admin-buttons">
+                                    <button class="edit-channel-btn" data-channel-id="{{ channel[0] }}" data-channel-name="{{ channel[1] }}" title="Edit channel name">
+                                        <i class="fa-solid fa-edit"></i>
+                                    </button>
+                                    <button class="delete-channel-btn" data-channel-id="{{ channel[0] }}" data-channel-name="{{ channel[1] }}" title="Delete channel">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </li>
+                {% endfor %}
+            {% endif %}
+        </ul>
+    </div>
+    <div class="top-glass-container">
+        <h1>
+            {% if tab_info['tab'] == 'chats' and not tab_info['viewing'] %}
+                <a class="add-btn" href="{{ url_for('create_chat') }}"><span>Create chat</span></a>
+            {% endif %}
+        </h1>
+        <h1>
+            {% if tab_info['tab'] == 'channels' and not tab_info['viewing'] %}
+                <a class="add-btn" href="{{ url_for('create_channel') }}"><span>Create channel</span></a>
+            {% endif %}
+        </h1>
+        <header>
+            <h1><a href="{{ url_for('home_users') }}">Users</a></h1>
+            <h1><a href="{{ url_for('home_chats') }}">Chats</a></h1>
+            <h1><a href="{{ url_for('home_channels') }}">Channels</a></h1>
+            <h1>{{ viewing_username }}</h1>
+        </header>
+    </div>
+    <div class="main">
+        {% if not tab_info['viewing'] %}
+        <div class="fly-glass-container">
+            <h1>Welcome, {{ self_name }}!</h1>
+
+            <p>Select user to start messaging</p>
+        </div>
+            {% endif %}
+            {% if tab_info['viewing'] %}
+                <ul id="messages" data-scope="{{ 'personal' if tab_info['tab']=='users' else ('chat' if tab_info['tab']=='chats' else 'channel') }}" data-viewing="{{ tab_info['viewing'] }}">
+                    {% for msg in tab_info['messages'] %}
+                        <li class="message
+                            {% if tab_info['tab'] == 'users' and msg[1] == self_id %} self{% endif %}
+                            {% if tab_info['tab'] == 'chats' and msg[1] == self_id %} self{% endif %}
+                            {% if tab_info['tab'] == 'channels' and msg[1] == self_id %} self{% endif %}"
+                            data-id="{{ msg[0] }}"
+                        >
+                            <div class="msg-text">
+                            {% if tab_info['tab'] == 'users' %}
+                                {{ users2[msg[1]] }} : {{ msg[2] }}
+                            {% elif tab_info['tab'] == 'chats' %}
+                                {{ msg[4] }} : {{ msg[2] }}
+                            {% else %}
+                                {{ msg[4] }} : {{ msg[2] }}
+                            {% endif %}
+                            </div>
+                            <div class="msg-time">{{ msg[3] }}</div>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <!-- <button class="scroll-to-top-btn">Up</button> -->
+
+                {% if tab_info['tab'] == 'chats' %}
+                    <form class="message-form" id="chat-message-form">
+                        <input placeholder="Write something.." type="text" class="write-message-input" id="chat-message-input">
+                        <button class="write-message-button" type="submit">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                {% elif tab_info['tab'] == 'channels' and tab_info['owner'] %}
+                    <form class="message-form" id="channel-message-form">
+                        <input placeholder="Write something.." type="text" class="write-message-input" id="channel-message-input">
+                        <button class="write-message-button" type="submit">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                {% endif %}
+            {% endif %}
+    </div>
+    {% if tab_info['tab'] == 'users' %}
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script>
+            const socketPresence = io();
+            function startTypingAnimation(badge) {
+                if (!badge) return;
+                if (badge._typingInterval) return; // already running
+                const frames = ['Typing.', 'Typing..', 'Typing...'];
+                let i = 0;
+                badge.textContent = frames[i];
+                badge._typingInterval = setInterval(() => {
+                    i = (i + 1) % frames.length;
+                    badge.textContent = frames[i];
+                }, 500);
+            }
+            function stopTypingAnimation(badge) {
+                if (!badge) return;
+                if (badge._typingInterval) {
+                    clearInterval(badge._typingInterval);
+                    badge._typingInterval = null;
+                }
+                // reset default text
+                badge.textContent = 'Typing';
+            }
+            socketPresence.on('presence', (data) => {
+                const { user_id, online } = data;
+                document.querySelectorAll(`#nav-list li[data-type="user"][data-id="${user_id}"] .status-badge`).forEach(el => {
+                    el.textContent = online ? 'Online' : 'Offline';
+                    el.classList.toggle('online', online);
+                    el.classList.toggle('offline', !online);
+                });
+                document.querySelectorAll(`#nav-list li[data-type="user"][data-id="${user_id}"] .typing-badge`).forEach(el => {
+                    if (!online) {
+                        el.hidden = true;
+                        stopTypingAnimation(el);
+                    }
+                });
+            });
+
+            // Typing indicator in user list (when peer types in personal chat)
+            socketPresence.on('typing', (data) => {
+                const { user_id } = data;
+                const badge = document.querySelector(`#nav-list li[data-type="user"][data-id="${user_id}"] .typing-badge`);
+                if (!badge) return;
+                badge.hidden = false;
+                clearTimeout(badge._hideTimer);
+                startTypingAnimation(badge);
+                badge._hideTimer = setTimeout(() => { badge.hidden = true; stopTypingAnimation(badge); }, 2000);
+            });
+            socketPresence.on('typing_presence', (data) => {
+                const { user_id } = data;
+                const badge = document.querySelector(`#nav-list li[data-type="user"][data-id="${user_id}"] .typing-badge`);
+                if (!badge) return;
+                badge.hidden = false;
+                clearTimeout(badge._hideTimer);
+                startTypingAnimation(badge);
+                badge._hideTimer = setTimeout(() => { badge.hidden = true; stopTypingAnimation(badge); }, 2000);
+            });
+        </script>
+    {% endif %}
+    
+    {% if tab_info['tab'] == 'chats' %}
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script>
+            const socketChats = io();
+            
+            // Оновлення статусу чатів при зміні присутності користувачів
+            socketChats.on('presence', (data) => {
+                const { user_id, online } = data;
+                // Оновлюємо статус всіх чатів
+                updateChatStatuses();
+            });
+            
+            function updateChatStatuses() {
+                // Отримуємо поточний список чатів та оновлюємо їх статус
+                fetch('{{ url_for("home_chats") }}')
+                    .then(response => response.text())
+                    .then(html => {
+                        // Парсимо HTML та оновлюємо тільки статуси чатів
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const chatItems = doc.querySelectorAll('#nav-list li[data-type="chat"]');
+                        
+                        chatItems.forEach(chatItem => {
+                            const chatId = chatItem.getAttribute('data-id');
+                            const currentItem = document.querySelector(`#nav-list li[data-type="chat"][data-id="${chatId}"]`);
+                            if (currentItem) {
+                                const statusBadge = chatItem.querySelector('.chat-status-badge');
+                                if (statusBadge) {
+                                    const currentStatusBadge = currentItem.querySelector('.chat-status-badge');
+                                    if (currentStatusBadge) {
+                                        currentStatusBadge.outerHTML = statusBadge.outerHTML;
+                                    }
+                                }
+                            }
+                        });
+                    })
+                    .catch(error => console.error('Error updating chat statuses:', error));
+            }
+        </script>
+    {% endif %}
+    
+    <script>
+    // Context menu handling for nav items (chats/channels)
+    document.addEventListener('DOMContentLoaded', function() {
+        const nav = document.getElementById('nav-list');
+
+        // Chat admin buttons handling
+        document.addEventListener('click', function(e) {
+            // Edit chat button
+            if (e.target.closest('.edit-chat-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const button = e.target.closest('.edit-chat-btn');
+                const chatId = button.getAttribute('data-chat-id');
+                const currentName = button.getAttribute('data-chat-name');
+                const newName = prompt('Enter new chat name:', currentName);
+                if (newName && newName.trim() !== '' && newName !== currentName) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url_for('edit_chat') }}";
+                    const chatIdInput = document.createElement('input');
+                    chatIdInput.type = 'hidden';
+                    chatIdInput.name = 'chat_id';
+                    chatIdInput.value = chatId;
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'hidden';
+                    nameInput.name = 'new_name';
+                    nameInput.value = newName.trim();
+                    form.appendChild(chatIdInput);
+                    form.appendChild(nameInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+            
+            // Add member chat button
+            if (e.target.closest('.add-member-chat-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const button = e.target.closest('.add-member-chat-btn');
+                const chatId = button.getAttribute('data-chat-id');
+                // Переходимо на сторінку додавання учасника, зберігаючи chat_id в query,
+                // бекенд виставить його в session, якщо користувач є учасником
+                const url = new URL("{{ url_for('add_chat_member') }}", window.location.origin);
+                url.searchParams.set('chat_id', chatId);
+                window.location.href = url.toString();
+            }
+            
+            // Delete chat button
+            if (e.target.closest('.delete-chat-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const button = e.target.closest('.delete-chat-btn');
+                const chatId = button.getAttribute('data-chat-id');
+                const chatName = button.getAttribute('data-chat-name');
+                if (confirm(`Are you sure you want to delete chat "${chatName}"?`)) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url_for('delete_chat') }}";
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'chat_id';
+                    input.value = chatId;
+                    form.appendChild(input);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+
+            if (e.target.closest('.edit-channel-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const button = e.target.closest('.edit-channel-btn');
+                const channelId = button.getAttribute('data-channel-id');
+                const currentName = button.getAttribute('data-channel-name');
+                const newName = prompt('Enter new channel name:', currentName);
+                if (newName && newName.trim() !== '' && newName !== currentName) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url_for('edit_channel') }}";
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'channel_id';
+                    idInput.value = channelId;
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'hidden';
+                    nameInput.name = 'new_name';
+                    nameInput.value = newName.trim();
+                    form.appendChild(idInput);
+                    form.appendChild(nameInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+
+            if (e.target.closest('.delete-channel-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const button = e.target.closest('.delete-channel-btn');
+                const channelId = button.getAttribute('data-channel-id');
+                const channelName = button.getAttribute('data-channel-name');
+                if (confirm(`Are you sure you want to delete channel "${channelName}"?`)) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url_for('delete_channel') }}";
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'channel_id';
+                    input.value = channelId;
+                    form.appendChild(input);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+        });
+
+        const messages = document.getElementById('messages');
+        if (messages) {
+            messages.addEventListener('contextmenu', function(e) {
+                const li = e.target.closest('li.message');
+                if (!li || !li.classList.contains('self')) return; // only own messages
+                e.preventDefault();
+                const id = li.getAttribute('data-id');
+                const scope = messages.dataset.scope;
+                const viewing = messages.dataset.viewing;
+                const params = new URLSearchParams({ scope, id });
+                if (scope === 'personal') params.set('peer_id', viewing);
+                if (scope === 'chat') params.set('chat_id', viewing);
+                if (scope === 'channel') params.set('channel_id', viewing);
+                if (confirm('Delete this message?')) {
+                    const payload = Object.fromEntries(params.entries());
+                    const emitter = window.socket || window.socketChat || window.socketChannel || io();
+                    emitter.emit('delete_message', payload);
+                }
+            });
+        }
+    });
+    </script>
+    {% if tab_info['tab'] == 'users' and tab_info['viewing'] %}
+        <form class="message-form" id="message-form">
+            <input placeholder="Write something.." type="text" class="write-message-input" id="message-input">
+            <button class="write-message-button" type="submit">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </form>
+        
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script>
+
+            window.addEventListener('DOMContentLoaded', () => {
+                const messages = document.getElementById('messages');
+                if (messages) {
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            });
+
+            // document.querySelectorAll('.scroll-to-top-btn').forEach(button => {
+            //     button.addEventListener('click', function () {
+            //         const messages = document.getElementById('messages');
+            //         if (messages) {
+            //         messages.scrollTop = 0;
+            //         }
+            //     });
+            // });
+
+        </script>
+        <script>
+            const username = "{{ self_id }}";
+            const peer = "{{ tab_info['viewing'] }}";
+            const isSelf = username === peer;
+            const room = isSelf ? null : [username, peer].sort((a, b) => Number(a) - Number(b)).join(":");
+
+            const socket = io();
+
+            socket.on('connect', () => {
+                if (room) socket.emit('join', { room });
+            });
+
+            socket.on('system', (data) => {
+                console.log('system:', data);
+            });
+
+            socket.on('personal_message', (data) => {
+                const li = document.createElement('li');
+                li.className = 'message' + (data.username === "{{ self_name }}" ? ' self' : '');
+                li.dataset.id = data.id;
+                li.innerHTML = `<div class="msg-text">${data.username} : ${data.text}</div><div class="msg-time">${data.ts ?? ''}</div>`;
+                document.getElementById('messages')?.appendChild(li);
+            });
+
+            socket.on('message_deleted', (data) => {
+                const messages = document.getElementById('messages');
+                if (!messages) return;
+                const li = messages.querySelector(`li.message[data-id="${data.id}"]`);
+                if (li) li.remove();
+            });
+
+            const form = document.getElementById('message-form');
+            if (form) {
+                const input = document.getElementById('message-input');
+                let lastEmit = 0;
+                input?.addEventListener('input', () => {
+                    const now = Date.now();
+                    if (now - lastEmit > 1000 && room) {
+                        socket.emit('typing', { room });
+                        lastEmit = now;
+                    }
+                });
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const text = input.value.trim();
+                    if (!text) return;
+                    socket.emit('personal_message', { text, room });
+                    input.value = '';
+                });
+            }
+
+            function buildConfirmUrl(scope, id) {
+                const params = new URLSearchParams({ scope, id });
+                if (scope === 'personal') params.set('peer_id', peer);
+                return `${window.location.origin}${"{{ url_for('confirm_delete') }}"}?${params.toString()}`;
+            }
+            function wireDeletionHandlers(scope) {
+                const messages = document.getElementById('messages');
+                if (!messages) return;
+                messages.addEventListener('click', (e) => {
+                    // Якщо клікнули по кнопці удаления або внутри формы удаления — не перенаправляємо,
+                    // щоб форма відправилася нормально.
+                    if (e.target.closest('.delete-msg') || e.target.closest('.inline-delete-form')) return;
+                    const li = e.target.closest('li.message');
+                    if (!li || !li.classList.contains('self')) return;
+                    const id = li.dataset.id;
+                    const href = buildConfirmUrl(scope, id);
+                    window.location.href = href;
+                });
+            }
+            wireDeletionHandlers('personal');
+        </script>
+    {% endif %}
+
+    {% if tab_info['tab'] == 'chats' and tab_info['viewing'] %}
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script>
+
+            window.addEventListener('DOMContentLoaded', () => {
+                const messages = document.getElementById('messages');
+                if (messages) {
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            });
+
+            // document.querySelectorAll('.scroll-to-top-btn').forEach(button => {
+            //     button.addEventListener('click', function () {
+            //         const messages = document.getElementById('messages');
+            //         if (messages) {
+            //         messages.scrollTop = 0;
+            //         }
+            //     });
+            // });
+
+        </script>
+        <script>
+            const socketChat = io();
+            const chatId = "{{ tab_info['viewing'] }}";
+            const chatRoom = `chat:${chatId}`;
+            socketChat.on('connect', () => {
+                socketChat.emit('join', { room: chatRoom });
+            });
+            socketChat.on('chat_message', (data) => {
+                const li = document.createElement('li');
+                li.className = 'message' + (data.username === "{{ self_name }}" ? ' self' : '');
+                li.dataset.id = data.id;
+                li.innerHTML = `<div class=\"msg-text\">${data.username} : ${data.text}</div><div class=\"msg-time\">${data.ts ?? ''}</div>`;
+                document.getElementById('messages')?.appendChild(li);
+            });
+
+            socketChat.on('message_deleted', (data) => {
+                const messages = document.getElementById('messages');
+                if (!messages) return;
+                const li = messages.querySelector(`li.message[data-id="${data.id}"]`);
+                if (li) li.remove();
+            });
+            const chatForm = document.getElementById('chat-message-form');
+            if (chatForm) {
+                chatForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('chat-message-input');
+                    const text = input.value.trim();
+                    if (!text) return;
+                    socketChat.emit('chat_message', { text, chat_id: chatId });
+                    input.value = '';
+                });
+            }
+            function buildConfirmUrl(scope, id) {
+                const params = new URLSearchParams({ scope, id });
+                if (scope === 'chat') params.set('chat_id', chatId);
+                return `${window.location.origin}${"{{ url_for('confirm_delete') }}"}?${params.toString()}`;
+            }
+            function wireDeletionHandlers(scope) {
+                const messages = document.getElementById('messages');
+                if (!messages) return;
+                messages.addEventListener('click', (e) => {
+                    const li = e.target.closest('li.message');
+                    if (!li || !li.classList.contains('self')) return;
+                    const id = li.dataset.id;
+                    const href = buildConfirmUrl(scope, id);
+                    window.location.href = href;
+                });
+            }
+            wireDeletionHandlers('chat');
+        </script>
+    {% endif %}
+
+    {% if tab_info['tab'] == 'channels' and tab_info['viewing'] %}
+        <script>
+
+            window.addEventListener('DOMContentLoaded', () => {
+                const messages = document.getElementById('messages');
+                if (messages) {
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            });
+
+            // document.querySelectorAll('.scroll-to-top-btn').forEach(button => {
+            //     button.addEventListener('click', function () {
+            //         const messages = document.getElementById('messages');
+            //         if (messages) {
+            //         messages.scrollTop = 0;
+            //         }
+            //     });
+            // });
+
+        </script>
+        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <script>
+            const socketChannel = io();
+            const channelId = "{{ tab_info['viewing'] }}";
+            const channelRoom = `channel:${channelId}`;
+            socketChannel.on('connect', () => {
+                socketChannel.emit('join', { room: channelRoom });
+            });
+            socketChannel.on('channel_message', (data) => {
+                const li = document.createElement('li');
+                li.className = 'message' + (data.username === "{{ self_name }}" ? ' self' : '');
+                li.dataset.id = data.id;
+                li.innerHTML = `<div class=\"msg-text\">${data.username} : ${data.text}</div><div class=\"msg-time\">${data.ts ?? ''}</div>`;
+                document.getElementById('messages')?.appendChild(li);
+            });
+
+            socketChannel.on('message_deleted', (data) => {
+                const messages = document.getElementById('messages');
+                if (!messages) return;
+                const li = messages.querySelector(`li.message[data-id="${data.id}"]`);
+                if (li) li.remove();
+            });
+
+            function buildConfirmUrl(scope, id) {
+                const params = new URLSearchParams({ scope, id });
+                if (scope === 'personal') params.set('peer_id', peer);
+                if (scope === 'chat') params.set('chat_id', chatId);
+                if (scope === 'channel') params.set('channel_id', channelId);
+                return `${window.location.origin}${"{{ url_for('confirm_delete') }}"}?${params.toString()}`;
+            }
+
+            function wireDeletionHandlers(scope) {
+                const messages = document.getElementById('messages');
+                if (!messages) return;
+                // messages.addEventListener('click', (e) => {
+                //     const li = e.target.closest('li.message');
+                //     if (!li || !li.classList.contains('self')) return;
+                //     const id = li.dataset.id;
+                //     const href = buildConfirmUrl(scope, id);
+                //     window.location.href = href;
+                // });
+            }
+
+            function wireDeletionListener(socketInstance) {
+                socketInstance.on('message_deleted', (data) => {
+                    const { id } = data;
+                    const messages = document.getElementById('messages');
+                    if (!messages) return;
+                    const li = [...messages.querySelectorAll('li.message')].find(n => n.dataset.id == id);
+                    if (li) li.remove();
+                });
+            }
+            const channelForm = document.getElementById('channel-message-form');
+            if (channelForm) {
+                channelForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('channel-message-input');
+                    const text = input.value.trim();
+                    if (!text) return;
+                    socketChannel.emit('channel_message', { text, channel_id: channelId });
+                    input.value = '';
+                });
+            }
+            function buildConfirmUrl(scope, id) {
+                const params = new URLSearchParams({ scope, id });
+                if (scope === 'channel') params.set('channel_id', channelId);
+                return `${window.location.origin}${"{{ url_for('confirm_delete') }}"}?${params.toString()}`;
+            }
+            function wireDeletionHandlers(scope) {
+                const messages = document.getElementById('messages');
+                if (!messages) return;
+                // messages.addEventListener('click', (e) => {
+                //     const li = e.target.closest('li.message');
+                //     if (!li || !li.classList.contains('self')) return;
+                //     const id = li.dataset.id;
+                //     const href = buildConfirmUrl(scope, id);
+                //     window.location.href = href;
+                // });
+            }
+            wireDeletionHandlers('channel');
+
+
+        </script>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('logout') }}" class="log_out">
+        <button type="submit">Log out</button>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Функция безопасной отправки формы удаления (остановит перехватчики и выполнит POST)
+            window.submitDeleteForm = async function(e, form) {
+                e.stopPropagation();
+                e.preventDefault();
+                // покажем confirm если нужно (можно убрать)
+                if (!confirm('Delete this message?')) return;
+                const action = form.getAttribute('action');
+                const fd = new FormData(form);
+                try {
+                    const resp = await fetch(action, { method: 'POST', body: fd, credentials: 'same-origin' });
+                    // Если сервер редиректит, следуем за редиректом
+                    if (resp.redirected) {
+                        window.location.href = resp.url;
+                        return;
+                    }
+                    // В противном случае обновим страницу
+                    window.location.reload();
+                } catch (err) {
+                    console.error('Delete request failed', err);
+                    window.location.reload();
+                }
+            };
+            
+            // Убедимся, что клики по кнопке удаления не перехватываются общими обработчиками
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.inline-delete-form') || e.target.closest('.delete-msg')) {
+                    e.stopPropagation();
+                }
+            }, true);
+        });
+    </script>
+</body>
+</html>

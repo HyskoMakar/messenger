@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: hmakarr-web
+    env: python
+    region: oregon
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k eventlet -w 1 main:app
+    envVars:
+      - key: SECRET_KEY
+        value: "change-me-in-render"
+      - key: DATABASE_PATH
+        value: "app.db"
