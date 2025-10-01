@@ -667,4 +667,5 @@ def edit_channel():
     return redirect(url_for('home_channels'))
 
 if __name__ == '__main__':
-    sio.run(app, debug=True, port=2000)
+    debug_mode = os.environ.get('DEBUG', 'false').lower() in ('1', 'true', 'yes')
+    sio.run(app, debug=debug_mode)

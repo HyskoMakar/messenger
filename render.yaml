@@ -1,13 +1,14 @@
 services:
   - type: web
-    name: hmakarr-web
+    name: pupupu-web
     env: python
-    region: oregon
     branch: main
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn -k eventlet -w 1 main:app
     envVars:
       - key: SECRET_KEY
-        value: "change-me-in-render"
+        value: "replace-with-your-generated-secret"
       - key: DATABASE_PATH
-        value: "app.db"
+        value: "/opt/render/project/data/app.db"
+      - key: FLASK_ENV
+        value: "production"
