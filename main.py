@@ -1,14 +1,13 @@
-import os
-from dotenv import load_dotenv
+# import os
+# from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, g
 from flask_socketio import SocketIO, send, emit, join_room, leave_room
 
 from db import Database
 
-load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me')
+app.config['SECRET_KEY'] = "sercet"
 
 sio = SocketIO(app, cors_allowed_origins="*")
 
@@ -659,13 +658,12 @@ def edit_channel():
 
     if not new_name or len(new_name.strip()) == 0:
         return redirect(url_for('home_channels'))
-
-    # Ожидается, что в db есть метод update_channel_name(channel_id, new_name, user_id)
+    
     if db.update_channel_name(channel_id_int, new_name.strip(), self_id):
         sio.emit('system', {'message': 'channel_updated', 'channel_id': channel_id_int, 'new_name': new_name.strip()}, to=f"channel:{channel_id_int}")
 
     return redirect(url_for('home_channels'))
 
 if __name__ == '__main__':
-    debug_mode = os.environ.get('DEBUG', 'false').lower() in ('1', 'true', 'yes')
-    sio.run(app, debug=debug_mode)
+
+    sio.run(app, debug=True)
